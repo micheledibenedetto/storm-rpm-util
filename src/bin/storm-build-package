@@ -1,0 +1,41 @@
+function usage() {
+   echo "Unage: storm-build-package <package-name>"
+   echo
+   echo "Example: storm-build-package storm-backend-server"
+   echo
+   echo "OPTIONS:"
+   echo "        -h,  --help: prints this help message"
+   echo
+   echo  "Available package-name values:"
+   sudo storm-download-srpm -U
+}
+
+
+if [ ! $# -eq 1 ]; then
+   usage
+   exit 1
+fi
+
+if [ $1 == "--help" -o $1 == "-help" -o $1 == "--help" -o $1 == "-h" ]; then
+   usage
+   exit 0
+fi
+
+CURR_DIR=$PWD
+TEMP_DIR=$(mktemp -d)
+cd $TEMP_DIR
+mkdir RPMS BUILD SRPMS ;
+cd SRPMS ; 
+sudo storm-download-srpm $1
+if [ ! 0 -eq $? ]; then
+    echo "Unable to download requested package"
+    usage
+    exit 1
+fi
+cd .. 
+osdist=$(cat /etc/redhat-release | awk -F "release " '{ print $2 }' | awk -F "." '{ print $1 }')
+sudo rpmbuild --rebuild --define "_topdir ${PWD}"  --define "dist .el${osdist}" SRPMS/*
+sudo cp -R RPMS/* $CURR_DIR
+sudo rm -rf $TEMP_DIR
+cd $CURR_DIR
+echo "Wrote files $(sudo ls -R .)"

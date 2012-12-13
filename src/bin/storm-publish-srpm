@@ -1,0 +1,48 @@
+function usage() {
+   echo "Unage: storm-publish-srpm [OPTIONS] <source-rpm-file-path>"
+   echo
+   echo "Example: storm-publish-srpm "
+   echo
+   echo "OPTIONS:"
+   echo "        -u <user>,  --user-id <user>: use a specific remote system user"
+   echo "        -h,  --help:                  prints this help message"
+}
+
+
+if [ $# -lt 1 ]; then
+   usage
+   exit 1
+fi
+
+if [ $1 == "--help" -o $1 == "-help" -o $1 == "--help" -o $1 == "-h" ]; then
+   usage
+   exit 0
+fi
+
+if [ $1 == "--user-id" -o $1 == "-u" ]; then
+   if [ -z $2 ]; then
+      echo "Invalid User id option"
+      usage
+      exit 1
+   fi
+   USER_NAME=$2
+   if [ -z $3 ]; then
+      echo "Invalid User id option"
+      usage
+      exit 1
+   fi
+   FILE_PATH=$3
+else
+   USER_NAME=$(whoami)
+   FILE_PATH=$1   
+fi
+
+echo $FILE_PATH | grep 'src.rpm'
+if [ ! $? -eq 0 ]; then
+   echo "Warning! The provided file does not looks a source rpm!"
+   usage
+   exit 1
+fi
+
+echo "Publishing to $USER_NAME@littleblue"
+scp $FILE_PATH $USER_NAME@littleblue:/var/lib/gforge/chroot/home/groups/storm/htdocs/repository/srpm_repository/.
