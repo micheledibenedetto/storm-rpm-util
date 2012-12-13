@@ -1,0 +1,90 @@
+#!/bin/bash
+PACKAGES_FILE=/tmp/storm-download-rpm.packages
+TEMP_FILE=storm-download-rpm.packages.tmp
+osdist=$(cat /etc/redhat-release | awk -F "release " '{ print $2 }' | awk -F "." '{ print $1 }')
+function updatePackages() {
+   CURR_DIR=$PWD
+   TEMP_DIR=$(mktemp -d)
+   cd $TEMP_DIR
+   curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep sl${osdist} | awk -F '.' '{print $1}' | rev | cut --complement -c1,2 | rev | uniq > $TEMP_FILE
+   curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep el${osdist} | awk -F '.' '{print $1}' | rev | cut --complement -c1,2 | rev | uniq >> $TEMP_FILE
+   uniq $TEMP_FILE $PACKAGES_FILE
+   cd $CURR_DIR
+   rm -rf $TEMP_DIR
+}
+
+
+function usage() {
+   echo "Unage: storm-download-rpm [OPTIONS] <package-name>"
+   echo
+   echo "Example: storm-download-rpm storm-backend-server"
+   echo "       : storm-download-rpm -U storm-backend-server"
+   echo
+   echo "OPTIONS:"
+   echo "        -U,  --update: updates the list of available packages"
+   echo "        -h,  --help: prints this help message"
+   echo
+   if [  ! -f $PACKAGES_FILE  ] || [ ! -s $PACKAGES_FILE ] ; then
+      updatePackages
+   fi
+   if [ -f $PACKAGES_FILE  ] && [ -s $PACKAGES_FILE ] ; then
+      echo  "Available package-name values:"
+      cat $PACKAGES_FILE
+   fi
+}
+
+function extractGreaterVersion(){
+   if [ $# -lt 2 ]; then
+      echo "Internal error, expected RPM_NAME_LIST OUTPUT, got: $@"
+      return 1
+   fi
+   MAX_VERSION=$(echo $@ | tr ' ' '\n' | grep -v ${!#} |rev | awk -F '-' '{print $1 "." $2}' | rev | sed 's/\.sl'$osdist'\..*\.rpm//g' | sed 's/\.el'$osdist'\..*\.rpm//g' | sort | tail -n 1)
+   CHOSEN_NAME=$(echo $@ | tr ' ' '\n' | grep $MAX_VERSION)
+   export ${!#}="$CHOSEN_NAME"
+   return 0
+}
+
+
+if [ $# -lt 1 ]; then
+   usage
+   exit 1
+fi
+
+if [ $1 == "--help" -o $1 == "-help" -o $1 == "--help" -o $1 == "-h" ]; then
+   usage
+   exit 0
+fi
+
+if [ $1 == "-U" -o $1 == "--update" ]; then
+   updatePackages
+   if [ $# -eq 1 ]; then
+      cat $PACKAGES_FILE
+      exit 0
+   fi
+   PACKAGE_NAME=$2
+else
+   PACKAGE_NAME=$1
+fi
+if [ -z $PACKAGE_NAME ]; then
+   usage
+   exit 1
+fi
+
+
+grep $PACKAGE_NAME $PACKAGES_FILE &> /dev/null
+if [ ! 0 -eq $? ]; then
+   echo "Package unknown. Try to update packages using \"-U\" Option"
+   usage
+   exit 2
+fi
+curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | grep $PACKAGE_NAME | grep sl${osdist} > $TEMP_FILE
+curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | grep $PACKAGE_NAME | grep el${osdist} >> $TEMP_FILE
+RPM_NAME=$(cat $TEMP_FILE | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>')
+rm -f $TEMP_FILE
+if test $(echo $RPM_NAME | wc -w) -gt 1 ; then
+   extractGreaterVersion $RPM_NAME "FINAL_RPM_NAME"
+else
+   FINAL_RPM_NAME=$RPM_NAME
+fi
+curl http://storm.forge.cnaf.infn.it/repository/rpm_repository/$FINAL_RPM_NAME -o $FINAL_RPM_NAME &> /dev/null
+exit 0
