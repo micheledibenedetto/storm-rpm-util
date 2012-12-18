@@ -8,6 +8,9 @@ function updatePackages() {
    cd $TEMP_DIR
    curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep sl${osdist} | awk -F '.' '{print $1}' | rev | cut --complement -c1,2 | rev | uniq > $TEMP_FILE
    curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep el${osdist} | awk -F '.' '{print $1}' | rev | cut --complement -c1,2 | rev | uniq >> $TEMP_FILE
+   if [ "${osdist}" == "5" ]; then
+       curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep $
+   fi
    uniq $TEMP_FILE $PACKAGES_FILE
    cd $CURR_DIR
    rm -rf $TEMP_DIR
