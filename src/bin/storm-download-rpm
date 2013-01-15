@@ -9,7 +9,7 @@ function updatePackages() {
    curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep sl${osdist} | awk -F '.' '{print $1}' | rev | cut --complement -c1,2 | rev | uniq > $TEMP_FILE
    curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep el${osdist} | awk -F '.' '{print $1}' | rev | cut --complement -c1,2 | rev | uniq >> $TEMP_FILE
    if [ "${osdist}" == "5" ]; then
-       curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep $
+       curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep -v sl6 | grep -v el6 | awk -F '.' '{print $1}' | rev | cut --complement -c1,2 | rev | uniq >> $TEMP_FILE
    fi
    uniq $TEMP_FILE $PACKAGES_FILE
    cd $CURR_DIR
@@ -70,8 +70,13 @@ function downloadPackage(){
    else
       FINAL_RPM_NAME=$RPM_NAME
    fi
-   echo "Downloading $FINAL_RPM_NAME"
-   curl http://storm.forge.cnaf.infn.it/repository/rpm_repository/$FINAL_RPM_NAME -o $FINAL_RPM_NAME &> /dev/null
+   if [ -f "${FINAL_RPM_NAME}" ]; then
+      echo "Package $PACKAGE_NAME already available at latest version : $FINAL_RPM_NAME"
+   else
+      echo "Downloading $FINAL_RPM_NAME"
+      curl http://storm.forge.cnaf.infn.it/repository/rpm_repository/$FINAL_RPM_NAME -o $FINAL_RPM_NAME &> /dev/null
+   fi
+
    return 0
 }
 
