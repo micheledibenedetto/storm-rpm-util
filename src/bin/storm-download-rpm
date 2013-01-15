@@ -44,7 +44,7 @@ function extractGreaterVersion(){
       echo "Internal error, expected RPM_NAME_LIST OUTPUT, got: $@"
       return 1
    fi
-   MAX_VERSION=$(echo $@ | tr ' ' '\n' | grep -v ${!#} |rev | awk -F '-' '{print $1 "." $2}' | rev | sed 's/\.sl'$osdist'\..*\.rpm//g' | sed 's/\.el'$osdist'\..*\.rpm//g' | sort -V | tail -n 1)
+   MAX_VERSION=$(echo $@ | tr ' ' '\n' | grep -v ${!#} |rev | awk -F '-' '{print $1 "." $2}' | rev | sed 's/\.sl'$osdist'\..*\.rpm//g' | sed 's/\.el'$osdist'\..*\.rpm//g' | sort -n -t . -k 1,1 -k 2,2 -k 3,3 -k 4,4 | tail -n 1)
    CHOSEN_NAME=$(echo $@ | tr ' ' '\n' | grep $MAX_VERSION)
    export ${!#}="$CHOSEN_NAME"
    return 0
