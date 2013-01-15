@@ -9,7 +9,7 @@ function updatePackages() {
    curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | grep href | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep sl${osdist} | awk -F '.' '{print $1}' | rev | cut --complement -c1,2 | rev | uniq > $TEMP_FILE
    curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | grep href | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep el${osdist} | awk -F '.' '{print $1}' | rev | cut --complement -c1,2 | rev | uniq >> $TEMP_FILE
    if [ "${osdist}" == "5" ]; then
-       curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep -v sl6 | grep -v el6 | awk -F '.' '{print $1}' | rev | cut --complement -c1,2 | rev | uniq >> $TEMP_FILE
+       curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | grep href | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>' | grep -v sl6 | grep -v el6 | awk -F '.' '{print $1}' | rev | cut --complement -c1,2 | rev | uniq >> $TEMP_FILE
    fi
    uniq $TEMP_FILE $PACKAGES_FILE
    cd $CURR_DIR
@@ -63,6 +63,9 @@ function downloadPackage(){
    fi
    curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | grep href | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | grep $PACKAGE_NAME | grep sl${osdist} > $TEMP_FILE
    curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | grep href | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | grep $PACKAGE_NAME | grep el${osdist} >> $TEMP_FILE
+   if [ "${osdist}" == "5" ]; then   
+      curl -X GET http://storm.forge.cnaf.infn.it/repository/rpm_repository/ 2>/dev/null | grep href | tr ' ' '\n' | tr '"' '\n' | grep rpm | grep -v 'src\.rpm' | grep $PACKAGE_NAME | grep -v sl6 | grep -v el6 >> $TEMP_FILE
+   fi
    RPM_NAME=$(cat $TEMP_FILE | sed 's/<\/a>//g' | sed 's/<a>//g' | tr -d '<>')
    rm -f $TEMP_FILE
    if test $(echo $RPM_NAME | wc -w) -gt 1 ; then
